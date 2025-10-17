@@ -1,32 +1,42 @@
-import { Connection, Client } from '@temporalio/client';
-import { example } from './workflows';
+import { Client, Connection } from '@temporalio/client';
 import { nanoid } from 'nanoid';
+import { workflowDuration, workflowExecutions } from './metrics';
+import { dataProcessingWorkflow } from './workflows';
 
 async function run() {
   // Connect to the default Server location
   const connection = await Connection.connect({ address: 'localhost:7233' });
-  // In production, pass options to configure TLS and other settings:
-  // {
-  //   address: 'foo.bar.tmprl.cloud',
-  //   tls: {}
-  // }
 
   const client = new Client({
     connection,
     // namespace: 'foo.bar', // connects to 'default' namespace if not specified
   });
+  const workflowId = 'data-processing-workflow-' + nanoid();
 
-  const handle = await client.workflow.start(example, {
-    taskQueue: 'hello-world',
-    // type inference works! args: [name: string]
-    args: ['Temporal'],
-    // in practice, use a meaningful business ID, like customerId or transactionId
-    workflowId: 'workflow-' + nanoid(),
-  });
-  console.log(`Started workflow ${handle.workflowId}`);
+  // Start a workflow execution
+  console.log('Starting workflow with ID:', workflowId);
+  const endTimer = workflowDuration.startTimer();
 
-  // optional: wait for client result
-  console.log(await handle.result()); // Hello, Temporal!
+  try {
+    const handle = await client.workflow.start(dataProcessingWorkflow, {
+      taskQueue: 'data-processing-queue',
+      workflowId,
+    });
+
+    console.log(`Workflow started: ${handle.workflowId}`);
+
+    const result = await handle.result();
+
+    endTimer();
+    workflowExecutions.inc({ status: 'successful' });
+
+    console.log('Workflow completed successfully with result:', result);
+  } catch (error) {
+    endTimer();
+    workflowExecutions.inc({ status: 'failed' });
+    console.error('Workflow failed:', error);
+    throw error;
+  }
 }
 
 run().catch((err) => {

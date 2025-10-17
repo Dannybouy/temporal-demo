@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-worker
+  namespace: temporal-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temporal-worker
+  template:
+    metadata:
+      labels:
+        app: temporal-worker
+      annotations:
+      prometheus.io/scrape: 'true'
+      prometheus.io/port: '9090'
+    spec:
+      containers:
+        - name: temporal-worker
+          image: temporal-worker:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 9090
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'

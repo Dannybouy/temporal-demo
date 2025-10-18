@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: temporal-worker
   namespace: temporal-demo
+  labels:
+    app: temporal-worker
+    version: v1
 spec:
   replicas: 1
   selector:
@@ -15,6 +18,7 @@ spec:
       annotations:
       prometheus.io/scrape: 'true'
       prometheus.io/port: '9090'
+      prometheus.io/path: '/metrics'
     spec:
       containers:
         - name: temporal-worker
@@ -22,7 +26,12 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 9090
+              name: metrics
+              protocol: TCP
           resources:
             requests:
               memory: '256Mi'
               cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'

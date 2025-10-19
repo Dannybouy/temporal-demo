@@ -61,17 +61,12 @@ This project implements a three-step data processing workflow:
 ### Prerequisites
 - Node.js 18+
 - Temporal CLI installed
-- Docker (optional, for K8s deployment)
+- Docker: docker build
+- Minikube: for K8s deployment
 - kubectl: Command-line tool
 
 ### Installation Commands
 ```bash
-# macOS - Install Temporal CLI
-brew install temporal
-
-# Linux - Install Temporal CLI
-curl -sSf https://temporal.download/cli.sh | sh
-
 # Windows - Use WSL2 or download from GitHub releases
 # https://github.com/temporalio/cli/releases
 
@@ -131,7 +126,7 @@ npm run workflow
 
 ### Workflow Execution
 
-[INSERT SCREENSHOT: Temporal UI showing workflow with retry]
+![workflow image 1](/public/workflow-1.png "Workflow image")
 
 ### Retry Behavior
 
@@ -150,52 +145,56 @@ $ curl http://localhost:9090/metrics
 
 # HELP temporal_workflow_executions_total Total number of workflow executions
 # TYPE temporal_workflow_executions_total counter
-temporal_workflow_executions_total{status="success"} 5
-temporal_workflow_executions_total{status="failed"} 0
 
 # HELP temporal_workflow_retries_total Total number of activity retries
 # TYPE temporal_workflow_retries_total counter
-temporal_workflow_retries_total{activity="fetchData"} 5
+temporal_workflow_retries_total{activity="fetchData"} 1
 
 # HELP temporal_workflow_duration_seconds Workflow execution duration
 # TYPE temporal_workflow_duration_seconds histogram
 temporal_workflow_duration_seconds_bucket{le="0.5"} 0
-temporal_workflow_duration_seconds_bucket{le="1"} 3
-temporal_workflow_duration_seconds_bucket{le="2"} 5
+temporal_workflow_duration_seconds_bucket{le="1"} 0
+temporal_workflow_duration_seconds_bucket{le="2"} 0
 ```
 
-[INSERT SCREENSHOT: Metrics output]
+![metrics image 1](/public/metrics.png "Metrics image")
 
 ---
 
-## 🐳 Kubernetes Deployment
+## Kubernetes Deployment (Minikube)
 
 ### Prerequisites
-- Docker Desktop with Kubernetes enabled
-- kubectl installed
+- Minikube installed and running
+- kubectl configured
 
 ### Deploy
 ```bash
-# Build Docker image
+# Start Minikube
+minikube start
+
+# Build image in Minikube
+eval $(minikube docker-env)
 docker build -t temporal-worker:latest .
 
-# Apply Kubernetes manifests
-kubectl apply -f kubernetes/
+# Deploy
+kubectl apply -f kubernetes/namespace.yaml
+kubectl apply -f kubernetes/deployment-minikube.yaml
+kubectl apply -f kubernetes/service.yaml
 
-# Verify deployment
+# Check status
 kubectl get pods -n temporal-demo
-kubectl get services -n temporal-demo
-```
-
-### Access Metrics in K8s
-```bash
-# Port forward to metrics service
-kubectl port-forward -n temporal-demo svc/temporal-worker-metrics 9090:9090
 
 # Access metrics
-curl http://localhost:9090/metrics
+kubectl port-forward -n temporal-demo svc/temporal-worker-metrics 9090:9090
+# Then access: http://localhost:9090/metrics
 ```
 
+### Cleanup
+```bash
+kubectl delete namespace temporal-demo
+minikube stop
+```
+![Deployment image 1](/public/deployment.png "Deployment image")
 ---
 
 ## 📁 Project Structure
@@ -222,25 +221,25 @@ curl http://localhost:9090/metrics
 ```typescript
 const { fetchData, transformData, saveData } = proxyActivities<typeof activities>({
   startToCloseTimeout: '1 minute',
-  retry: {
-    initialInterval: '1s',
-    maximumInterval: '10s',
-    backoffCoefficient: 2,
-    maximumAttempts: 3,
-  },
 });
 ```
 
 ### Simulated Failure
 ```typescript
-export async function fetchData(): Promise<any> {
+export async function fetchData(): Promise<any[]> {
   attemptCount++;
-  
-  if (attemptCount === 1) {
+  console.log(`Fetch attempt #${attemptCount}`);
+
+  // Simulate failure on first attempt
+  if (attemptCount % 2 === 1) {
+    console.log('fetchData Simulating failure...');
     throw new Error('API temporarily unavailable (simulated failure)');
   }
-  
+
+  // Simulate successful data fetching
+  console.log('fetchData Simulating success...');
   const response = await axios.get('https://jsonplaceholder.typicode.com/posts/1');
+
   return response.data;
 }
 ```
@@ -258,11 +257,11 @@ export async function fetchData(): Promise<any> {
 Run a complete test:
 ```bash
 # Start worker in background
-npm run worker &
+npm run start &
 
 # Execute workflow 5 times
 for i in {1..5}; do
-  npm run client
+  npm run workflow
   sleep 2
 done
 
@@ -272,7 +271,7 @@ curl http://localhost:9090/metrics | grep temporal
 
 Expected output:
 - 5 successful workflows
-- 5 retries on fetchData activity
+- 1 retries on fetchData activity
 
 ---
 

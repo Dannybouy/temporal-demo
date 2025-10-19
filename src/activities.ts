@@ -8,7 +8,7 @@ export async function fetchData(): Promise<any[]> {
   console.log(`Fetch attempt #${attemptCount}`);
 
   // Simulate failure on first attempt
-  if (attemptCount === 1) {
+  if (attemptCount % 2 === 1) {
     console.log('fetchData Simulating failure...');
     throw new Error('API temporarily unavailable (simulated failure)');
   }

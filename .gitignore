@@ -1,2 +1,13 @@
 lib
 node_modules
+.env
+.DS_Store
+.vscode
+dist
+coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.pnp.js
+tsconfig.tsbuildinfo

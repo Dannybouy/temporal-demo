@@ -1,16 +1,11 @@
-import {
-  ActivityExecuteInput,
-  ActivityInterceptors,
-  NativeConnection,
-  Worker,
-} from '@temporalio/worker';
+import { ActivityExecuteInput, ActivityInterceptors, NativeConnection, Worker } from '@temporalio/worker';
 import * as activities from './activities';
 import './metrics';
 import { workflowRetries } from './metrics';
 
 async function run() {
   const connection = await NativeConnection.connect({
-    address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
+    address: '192.168.49.2:7233',
   });
 
   const worker = await Worker.create({
@@ -21,14 +16,13 @@ async function run() {
     activities,
     interceptors: {
       activity: [
-        (): ActivityInterceptors => ({
+        (ctx): ActivityInterceptors => ({
           inbound: {
-            async execute(input: ActivityExecuteInput, next) {
+            async execute(input: ActivityExecuteInput, next): Promise<unknown> {
               try {
                 return await next(input);
               } catch (error) {
-                // Increment retry metric on failure
-                workflowRetries.inc();
+                workflowRetries.inc({ activity: ctx.info.activityType });
                 throw error;
               }
             },

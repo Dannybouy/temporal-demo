@@ -16,9 +16,9 @@ spec:
       labels:
         app: temporal-worker
       annotations:
-      prometheus.io/scrape: 'true'
-      prometheus.io/port: '9090'
-      prometheus.io/path: '/metrics'
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9090'
+        prometheus.io/path: '/metrics'
     spec:
       containers:
         - name: temporal-worker
@@ -28,6 +28,13 @@ spec:
             - containerPort: 9090
               name: metrics
               protocol: TCP
+          env:
+            - name: TEMPORAL_ADDRESS
+              value: "192.168.49.2:7233"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: NODE_ENV
+              value: "production"
           resources:
             requests:
               memory: '256Mi'
@@ -35,3 +42,22 @@ spec:
             limits:
               memory: '512Mi'
               cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      restartPolicy: Always

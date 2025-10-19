@@ -18,43 +18,8 @@ This project implements a three-step data processing workflow:
 
 ---
 
-## Architecture
-┌─────────────┐
-│   Client    │  Starts workflow execution
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────────────────┐
-│         Temporal Server (localhost:7233)     │
-│  • Manages workflow state                    │
-│  • Handles retries automatically             │
-│  • Ensures durability                        │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│              Worker Process                  │
-│  ┌─────────────────────────────────────┐   │
-│  │  Activities                          │   │
-│  │  • fetchData()    [May fail once]    │   │
-│  │  • transformData()                   │   │
-│  │  • saveData()                        │   │
-│  └─────────────────────────────────────┘   │
-│                                              │
-│  ┌─────────────────────────────────────┐   │
-│  │  Metrics Server (port 9090)         │   │
-│  │  • /metrics  → Prometheus format     │   │
-│  │  • /health   → Health check          │   │
-│  └─────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-                   │
-                   ▼
-         ┌─────────────────┐
-         │  Data Store      │  In-memory storage
-         │  (In Memory)     │
-         └─────────────────┘
-
----
+## Architecture Design
+![Architectural Design](/public/Temporal_Arch_design.png "Temporal Arch Design")
 
 ## Quick Start
 

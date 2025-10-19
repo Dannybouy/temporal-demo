@@ -9,7 +9,6 @@ async function run() {
 
   const client = new Client({
     connection,
-    // namespace: 'foo.bar', // connects to 'default' namespace if not specified
   });
   const workflowId = 'data-processing-workflow-' + nanoid();
 

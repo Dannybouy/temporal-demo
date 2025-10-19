@@ -5,7 +5,7 @@ import { workflowRetries } from './metrics';
 
 async function run() {
   const connection = await NativeConnection.connect({
-    address: '192.168.49.2:7233',
+    address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
   });
 
   const worker = await Worker.create({
